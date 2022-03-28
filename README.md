@@ -1,2 +1,2 @@
 # mcft_py
-A 
+A Modified Compression Field Theory Python toolbox
