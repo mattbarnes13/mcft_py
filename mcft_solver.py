@@ -5,27 +5,29 @@ import pandas as pd
 
 
 def mcft_solver(s_x, s_y, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_y, f_x, eps_c=0.002, E_s=200000, shear_area=1000, plot=True):
-    """mcft_solver uses the Full MCFT Process to iteratively solve for the maximum shear capacity of a reinforced conrete member
+    """mcft_solver uses the Full MCFT Process to iteratively solve for the maximum shear capacity
+    of a reinforced concrete member
     INPUTS:
     s_x - longitudinal reinforcement spacing (mm)
     s_y - transverse reinforcement spacing (mm)
-    f_c - compressive strength of concete (MPa)
+    f_c - compressive strength of concrete (MPa)
     agg_size - diameter of aggregate used in concrete (mm) A value of 6mm is recommended if this is not known
     rho_sy - the ratio of area of transverse steel to total area of a concrete section
     rho_sx - the ratio of area of longitudinal steel to total area of a concrete section
     f_yy - yield strength of transverse steel (MPa)
-    f_yx - yield strength of longitidinal steel (MPa)
+    f_yx - yield strength of longitudinal steel (MPa)
     f_y - applied vertical axial load (MPa), tension is positive
     f_x - applied horizontal axial load (MPa), tension is positive
     eps_c - Optional: Default value of 0.002, the cracking strain of concrete
     E_s - Optional: Default value of 200,000 (MPa)
-    shear area - Optional: Default value of 1000 is equivalent to calculating shear stress (mm^2). The width is to be
-    taken as the spalled width (width to outside of the transverse reinforcement). Depth is the total Depth less cover
+    shear area - Optional: Default value of 1000 (mm^2) is equivalent to calculating shear stress. The width is to be
+    taken as the spalled width (width to outside of the transverse reinforcement). Depth is the total depth less cover
     plot - Optional: Default value of True will display a plot the predicted member shear strain vs shear stress
     OUTPUTS:
     v - maximum shear stress (MPa) or V - Shear force (kN) if a shear area is provided
     """
 
+    # solution parameters
     tolerance_f_sy = 1
     tolerance_f_x = 1
     f_c = -f_c
@@ -39,13 +41,8 @@ def mcft_solver(s_x, s_y, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_y, f_x, e
     sm_x = 1.5 * s_x
     sm_y = 1.5 * s_y
 
-    # step 2
     Pi = math.pi
-
-    # step 3
     delta_theta = 0.1
-
-    # step 5
     delta_fsy = 0.1
 
     v_xy_list = []
@@ -53,9 +50,9 @@ def mcft_solver(s_x, s_y, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_y, f_x, e
     no_output_count = 0
 
     for eps_1 in range(200):
-        #print(f' iter: {eps_1 + 1:n}/200')
+        print(f' iter: {eps_1 + 1:n}/200')
 
-        # resetting vars
+        # resetting variables
         over_counter_limit = False
         fc1_iters = 0
         theta = 1
@@ -67,6 +64,7 @@ def mcft_solver(s_x, s_y, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_y, f_x, e
         iter_theta = False
         iter_fsy = False
         f_sy_repeat = 0
+
         while run:
             counter = counter + 1
             if counter == 10000:
@@ -76,13 +74,13 @@ def mcft_solver(s_x, s_y, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_y, f_x, e
             theta *= Pi / 180
             # step 4
             s_theta = 1 / (math.sin(theta) / sm_x + math.cos(theta) / sm_y)
-            w = eps_1 * s_theta # maybe multiply by 0.75 as in vicroads paper
+            w = eps_1 * s_theta
 
             # step 6
-            if eps_1 <= eps_cr:  #this condition is never true
+            if eps_1 <= eps_cr:
                 f_c1 = E_c * eps_1
             else:
-                f_c1 = f_cr / (1 + (500 * eps_1) ** 0.5) # 200 changed to 500
+                f_c1 = f_cr / (1 + (500 * eps_1) ** 0.5)  # 200 changed to 500
 
             k = max(1.64 - 1 / math.tan(theta), 0)
             v_ci_max = (-f_c) ** 0.5 / (0.31 + 24 * w / (agg_size + 16))
@@ -178,15 +176,14 @@ def mcft_solver(s_x, s_y, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_y, f_x, e
             iter_theta = False
             iter_fsy = False
 
-        if theta <= 75 and not over_counter_limit:
+        if theta <= 75 and not over_counter_limit:  # only adds solution to output list if it is realistic
             v_xy_list.append(v_xy*shear_area/1000)
             gamma_xy_list.append(gamma_xy)
             no_output_count = 0
         else:
             no_output_count += 1
 
-        if no_output_count >= 30:
-
+        if no_output_count >= 30:  # saves time if there are repeated failures, e.g. in plastic region
             break
 
     if plot:

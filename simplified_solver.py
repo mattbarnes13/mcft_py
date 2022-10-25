@@ -6,15 +6,16 @@ from matplotlib import pyplot as plt
 
 
 def simplified_solver(s_x, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_x, E_s=200000):
-    """simplified_solver uses the Simplified MCFT Process to iteratively solve for the maximum shear capacity of a reinforced conrete member
+    """simplified_solver uses the Simplified MCFT Process to iteratively solve for the maximum shear capacity
+    of a reinforced concrete member
     INPUTS:
     s_x - longitudinal reinforcement spacing (mm)
-    f_c - compressive strength of concete (MPa)
-    agg_size - diameter of aggregate used in concrete (mm) A value of 6mm is recommended if this is not known
+    f_c - compressive strength of concrete (MPa)
+    agg_size - diameter of aggregate used in concrete (mm). A value of 6mm is recommended if this is not known
     rho_sy - the ratio of area of transverse steel to total area of a concrete section
     rho_sx - the ratio of area of longitudinal steel to total area of a concrete section
     f_yy - yield strength of transverse steel (MPa)
-    f_yx - yield strength of longitidinal steel (MPa)
+    f_yx - yield strength of longitudinal steel (MPa)
     f_x - applied horizontal axial load (MPa), tension is positive
     E_s - Optional: Default value of 200,000 (MPa)
     OUTPUTS:
@@ -34,14 +35,12 @@ def simplified_solver(s_x, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_x, E_s=2
     s_xe = 35 * s_x / (agg_size + 16)
     while run is True and iters < iter_limit:
 
-        # theta = math.atan((0.568 + 12.58 * s_xe * eps_1 / math.sin(theta)) / (1 + math.sqrt(500 * eps_1)))
-        #
-        # eps_1 = eps_x * (1 + 1 / math.tan(theta) ** 2) + 1 / math.tan(theta) ** 4 / (15000 * (1 + math.sqrt(500 * eps_1)))
         if iters >= 1:
             eps_x = next_eps_x
 
         iters += 1
 
+        # uses sci_py optimisation function to solve for eps_1 and theta
         def my_function(z):
             theta = z[0]
             eps_1 = z[1]
@@ -58,7 +57,7 @@ def simplified_solver(s_x, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_x, E_s=2
 
             beta = 0.18 / (0.31 + 0.686 * s_xe * eps_1 / math.sin(theta))
 
-        except Exception:
+        except Exception:  # if optimisation fails, uses empirical equations instead
             beta = 0.4/(1+1500*eps_x) * 1300/(1000+s_xe)
             theta = min((29+7000*eps_x) * (0.88 + s_xe/2500), 75)
             theta = theta * math.pi/180
@@ -82,12 +81,10 @@ def simplified_solver(s_x, f_c, agg_size, rho_sy, rho_sx, f_yy, f_yx, f_x, E_s=2
             f_sxcr_check = True
             next_eps_x = eps_x + increment
 
-
-
-        if f_sxcr_check is True and f_sxcr <= f_yx:
+        if f_sxcr_check is True and f_sxcr <= f_yx:  # conditions must be true to output solution
             run = False
 
-        if rho_sy * f_yy /f_c > 0.25:
+        if rho_sy * f_yy / f_c > 0.25:  # maximum calculated shear
             v = 0.25 * f_c
             break
 
